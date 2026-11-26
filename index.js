@@ -1,7 +1,7 @@
 
 const express = require('express');
 const cors = require('cors');
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 require('dotenv').config();
 
 const app = express();
@@ -20,13 +20,42 @@ async function connectToMongoDB() {
 
     const database = client.db('skillbridge_db');
     const projectCollection = database.collection('projects');
+    const userCollection = database.collection('user');
+    // USER API
+
+ app.get('/api/user', async (req, res) => {
+  try {
+    const result = await userCollection.find().toArray();
+
+    res.status(200).send(result);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).send({
+      message: 'Failed to fetch users',
+      error: error.message,
+    });
+  }
+});
+
+app.get('/api/user/:id', async(req,res)=>{
+  const id = req.params.id;
+  const query = {
+    _id: new ObjectId(id)
+  }
+  const result = await userCollection.findOne(query);
+  res.send(result)
+})
 
     // Project API
     app.get('/api/projects', async(req,res)=>{
         const query = {};
+        const {category} = req.query;
         if(req.query.clientId){
             query.clientId = req.query.clientId
         }
+        if(category){
+        query.category = category
+      }
         if(req.query.status){
             query.status = req.query.status
         }
@@ -34,6 +63,24 @@ async function connectToMongoDB() {
         const result = await cursor.toArray();
         res.send(result)
     })
+    app.get('/api/projects/:id', async(req,res)=>{
+      const id = req.params.id;
+      const query = {
+        _id: new ObjectId(id)
+      };
+      const result = await projectCollection.findOne(query);
+      res.send(result)
+    })
+    // app.get('/api/projects' , async(req,res)=>{
+    //   const {category} = req.query;
+    //   console.log("Selected Category:", category);
+    //   const query = {};
+    //   if(category){
+    //     query.category = category
+    //   }
+    //   const result = await projectCollection.find(query).toArray();
+    //   res.send(result)
+    // })
     app.post('/api/projects', async(req,res) =>{
         const project = req.body
         const result = await projectCollection.insertOne(project)
